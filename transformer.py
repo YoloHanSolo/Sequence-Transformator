@@ -1,54 +1,142 @@
 import sys
 import math
+import argparse
+import numpy as np
 
-def is_prime(number):
-    number = abs(number)
-    if number < 2:
-        return False 
-    for i in range(2, int(number/2)+1):
-        if (number % i) == 0:
-            return False     
-    return True
+parser = argparse.ArgumentParser()
+parser.add_argument('sequence', type=str)
+parser.add_argument('operation', choices={"power_up", "power_down", "delta_up", "delta_down", "sigma_up", "sigma_down"}, type=str)
+parser.add_argument('-l', '--length', type=int)
+args = parser.parse_args()
+sequence = np.array([float(x) for x in args.sequence.split(",")])
+operation = args.operation
+length = min(len(sequence), args.length or 10)
 
-def fun_operation(seq_list, operation):
-    result = []
-    for i in range(len(seq_list)):
-        result.append([])
-    result[0] = seq_list.copy()
-    for i in range(len(seq_list)):
-        for k in range(len(seq_list) - i - 1):
-            if operation == "diff":
-                result[i+1].append(abs(result[i][k] - result[i][k+1]))
-            elif operation == "neg":
-                result[i+1].append(result[i][k+1] - result[i][k])       
-            elif operation == "sum":
-                result[i+1].append(result[i][k] + result[i][k+1])
-            elif operation == "integral":
-                if i == 0:
-                    result[i+1].append(result[i][0])
-                    continue
-                sum = 0
-                for j in range(k+1):
-                    sum += result[i][j]
-                result[i+1].append(sum)
-            else:
-                result[i+1].append(result[i][k] + result[i][k+1])
-    return result
+print(sequence)
 
-def fun_print(result):
-    print("iteration {}".format(z))
-    #for i in range(len(result)):
-    #    for k in range(len(result[i])):
-    #        result[i][k] = abs(result[i][k])
-    for i in range(len(result)):
-        string = "  "    
-        for k in range(len(result[i])):
-            string += "{}".format(str(round(result[i][k], 2)))
-            if (k + 1) < len(result[i]):
-                string += ", "
-        print(string) 
-    
-sequences = [
+operations = ["power_up", "power_down", "delta_up", "delta_down", "sigma_up", "sigma_down"]
+
+operator_power_up = np.array([
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, 2, 1, 0, 0, 0, 0, 0, 0, 0],
+[1, 3, 3, 1, 0, 0, 0, 0, 0, 0],
+[1, 4, 6, 4, 1, 0, 0, 0, 0, 0],
+[1, 5, 10, 10, 5, 1, 0, 0, 0, 0],
+[1, 6, 15, 20, 15, 6, 1, 0, 0, 0],
+[1, 7, 21, 35, 35, 21, 7, 1, 0, 0],
+[1, 8, 28, 56, 70, 56, 28, 8, 1, 0],
+[1, 9, 36, 84, 126, 126, 84, 36, 9, 1]
+])
+
+operator_power_down = np.array([
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[-1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, -2, 1, 0, 0, 0, 0, 0, 0, 0],
+[-1, 3, -3, 1, 0, 0, 0, 0, 0, 0],
+[1, -4, 6, -4, 1, 0, 0, 0, 0, 0],
+[-1, 5, -10, 10, -5, 1, 0, 0, 0, 0],
+[1, -6, 15, -20, 15, -6, 1, 0, 0, 0],
+[-1, 7, -21, 35, -35, 21, -7, 1, 0, 0],
+[1, -8, 28, -56, 70, -56, 28, -8, 1, 0],
+[-1, 9, -36, 84, -126, 126, -84, 36, -9, 1]
+])
+
+operator_delta_up = np.array([
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+[1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+[1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+[1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+[1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+[1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+])
+
+operator_delta_down = np.array([
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[-1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, -1, 1, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, -1, 1, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, -1, 1, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, -1, 1, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, -1, 1, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, -1, 1, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, -1, 1, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, -1, 1]
+])
+
+operator_sigma_up = np.array([
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
+])
+
+
+operator_sigma_down = np.array([
+[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[-1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, -1, 1, 0, 0, 0, 0, 0, 0, 0],
+[-1, 1, -1, 1, 0, 0, 0, 0, 0, 0],
+[1, -1, 1, -1, 1, 0, 0, 0, 0, 0],
+[-1, 1, -1, 1, -1, 1, 0, 0, 0, 0],
+[1, -1, 1, -1, 1, -1, 1, 0, 0, 0],
+[-1, 1, -1, 1, -1, 1, -1, 1, 0, 0],
+[1, -1, 1, -1, 1, -1, 1, -1, 1, 0],
+[-1, 1, -1, 1, -1, 1, -1, 1, -1, 1]
+])
+
+"""
+print(np.matmul(operator_power_down, operator_power_down))
+print(np.matmul(operator_power_down, operator_power_up))
+print(np.matmul(operator_power_up, operator_power_down))
+print(np.matmul(operator_power_up, operator_power_up))
+
+print(np.matmul(operator_delta_down, operator_delta_down))
+print(np.matmul(operator_delta_down, operator_delta_up))
+print(np.matmul(operator_delta_up, operator_delta_down))
+print(np.matmul(operator_delta_up, operator_delta_up))
+
+print(np.matmul(operator_sigma_down, operator_sigma_down))
+print(np.matmul(operator_sigma_down, operator_sigma_up))
+print(np.matmul(operator_sigma_up, operator_sigma_down))
+print(np.matmul(operator_sigma_up, operator_sigma_up))
+"""
+
+operator = None
+operator_power_up = operator_power_up[:length, :length]
+operator_power_down = operator_power_down[:length, :length]
+operator_delta_up = operator_delta_up[:length, :length]
+operator_delta_down = operator_delta_down[:length, :length]
+operator_sigma_up = operator_sigma_up[:length, :length]
+operator_sigma_down = operator_sigma_down[:length, :length]
+
+match operation:
+    case "power_up":
+        operator = operator_power_up    
+    case "power_down":
+        operator = operator_power_down        
+    case "delta_up":
+        operator = operator_delta_up  
+    case "delta_down":
+        operator = operator_delta_down 
+    case "sigma_up":
+        operator = operator_sigma_up
+    case "sigma_down":
+        operator = operator_sigma_down
+
+print(np.matmul(operator, sequence))
+
+"""
     {"name": "primes", "sequence": [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]},
     {"name": "primes_inv", "sequence": [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]},
     {"name": "primes_seed", "sequence": [0, 1, 2, 2, 4, 2, 4, 2, 4, 6, 2, 6, 4, 2, 4, 6, 6, 2, 6, 4, 2, 6, 4, 6, 8, 4, 2, 4, 2, 4, 14, 4, 6, 2, 10, 2, 6, 6, 4, 6, 6, 2, 10, 2, 4, 2]},
@@ -126,91 +214,4 @@ sequences = [
     {"name": "[011]*", "sequence": [0, 1, 1, 0, 1, 1, 0, 1, 1]},
     {"name": "[110]*", "sequence": [1, 1, 0, 1, 1, 0, 1, 1, 0]},
 ]
-
-name = sys.argv[1]
-operation = sys.argv[2]
-s = None
-for s in sequences:
-    if name == s["name"]:
-        sequence = s["sequence"]
-
-#if len(sys.argv) > 3:
-sequence = sequence[0:50]
-
-iterations = 1
-if len(sys.argv) > 3:
-    iterations = int(sys.argv[3])
-
-memory = []
-memory.append(sequence.copy())
-
-print("{}".format(name))
-
-for z in range(iterations):
-    result = fun_operation(sequence, operation)
-    fun_print(result)
-    # q
-    sequence = []
-    if operation == "integral":
-        for i in range(1, len(result)):
-            sum = 0
-            for k in range(len(result)):
-                if len(result[k]) < i:
-                    continue
-                sum += result[k][-i]
-            sequence.insert(0, sum)
-    else:
-        for i in range(len(result)):
-            sequence.append(result[i][0])
-       
-    memory.append(sequence.copy())
-
-
-print()
-
-string = ""
-for m in range(len(memory)):
-    string += "["
-    for i in range(len(memory[m])):
-        if i+1 == len(memory[m]):
-            string += "{}".format(round(memory[m][i], 2))
-        else:
-            string += "{}, ".format(round(memory[m][i], 2))
-    string += "]\n"
-print(string)
-
-
-
-print("\n\nFUNC EVAL")
-import math
-string = ""
-string += "\n["
-l = 6
-for x in range(0, l, 1):
-    if x+1 == l:
-        string += "{}".format(round(math.sin(x), 2))
-    else:
-        string += "{}, ".format(round(math.sin(x), 2))
-string += "]\n"
-print(string)
-
-print("\n\n")
-
-
-exit()
-"""
-for i in range(len(result)):
-    for k in range(len(result[i])):
-        result[i][k] = abs(result[i][k])
-
-for i in range(len(sequence)):
-    string = "  "    
-    for k in range(len(result[i])):
-        if is_prime(result[i][k]):
-            string += "{}".format(str(result[i][k]))
-        else: 
-            string += " "
-        if (k + 1) < len(result[i]):
-            string += ", "
-    print(string)
 """
